@@ -185,7 +185,7 @@ document.getElementById('payout-form').addEventListener('submit', (e) => {
     let upi = document.getElementById('withdraw-upi').value.trim();
     let pass = document.getElementById('withdraw-pass').value;
 
-    if(amount < 50) return alert("Minimum withdraw amount is 50₹");
+    if(amount < 30) return alert("Minimum withdraw amount is 30₹");
     if(amount > userData.balance) return alert("Insufficient Balance!");
 
     // Verify Password before withdraw
@@ -300,4 +300,4 @@ function changePassword() {
             closeModals();
         }).catch(err => alert(err.message));
     }).catch(err => alert("Current password incorrect!"));
-                      }
+}
