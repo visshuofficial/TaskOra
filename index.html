@@ -79,11 +79,21 @@
             <!-- 1. TASKS PAGE -->
             <div id="page-tasks" class="page active">
                 <div class="page-title">Available Tasks</div>
+                
+                <!-- Instagram Task Card -->
                 <div class="task-card">
                     <div class="task-price">1₹ Per Task</div>
                     <h3 class="task-name">Instagram Id</h3>
                     <p class="task-caption">Unlimited Account Allowed • 29 Hours For Verification</p>
                     <button class="btn blue-btn" onclick="openTaskModal()">Submit A Insta Account</button>
+                </div>
+
+                <!-- Gmail Creation Work Card -->
+                <div class="task-card mt-20">
+                    <div class="task-price">₹6 Per Task</div>
+                    <h3 class="task-name">Gmail Creation Work</h3>
+                    <p class="task-caption">Unlimited Account Allowed • 48 Hours Verification</p>
+                    <button class="btn blue-btn" onclick="openGmailModal()">Start & Submit Gmail</button>
                 </div>
             </div>
 
@@ -100,6 +110,16 @@
                 <div class="balance-card">
                     <p>Total Available Balance</p>
                     <h1>₹<span id="main-balance-text">0.00</span></h1>
+                </div>
+
+                <!-- Promo Code Section -->
+                <div class="promo-card mt-20">
+                    <h3>Have a Promo Code?</h3>
+                    <div class="input-group mt-10">
+                        <input type="text" id="promo-code-input" placeholder=" ">
+                        <label>Enter Promo Code</label>
+                    </div>
+                    <button class="btn blue-btn btn-small" onclick="redeemPromoCode()">Redeem Code</button>
                 </div>
             </div>
             
@@ -178,6 +198,16 @@
                     <div class="info-row"><span>Phone:</span> <span id="profile-phone">---</span></div>
                     
                     <button class="btn neon-btn mt-20" onclick="openPasswordModal()">Change Password</button>
+                    
+                    <!-- Support Section -->
+                    <div class="support-box mt-20">
+                        <h3>Customer Support</h3>
+                        <p class="small-text mt-10" style="color:#aaa;">Need help? Contact us on Telegram.</p>
+                        <a href="https://t.me/task_ora_support" target="_blank" class="btn telegram-btn mt-10" style="display:block; text-decoration:none; text-align:center;">
+                            <i class="fa-brands fa-telegram"></i> Telegram Support
+                        </a>
+                    </div>
+
                     <button class="btn red-btn mt-20" onclick="logoutApp()">Logout</button>
                 </div>
             </div>
@@ -219,6 +249,35 @@
             <p class="guideline-text mt-10"><strong>Note:</strong> Only new and fresh created accounts are accepted. Once an account is submitted, it cannot be submitted again.</p>
             
             <button class="btn pink-orange-btn mt-20" onclick="submitTask()">Submit Account</button>
+        </div>
+    </div>
+
+    <!-- Popup / Modal for Gmail Task Submission -->
+    <div id="gmail-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModals()">&times;</span>
+            <h3 class="mb-20"><i class="fa-solid fa-g" style="color:#ff5722;"></i> Submit Gmail Task</h3>
+            <div class="input-group">
+                <input type="text" id="gmail-user-id" required placeholder=" ">
+                <label>Enter Gmail ID</label>
+            </div>
+            <div class="input-group">
+                <input type="text" id="gmail-user-pass" required placeholder=" ">
+                <label>Enter Gmail Password</label>
+            </div>
+            
+            <p class="modal-blue-text mt-10">Notice : turn off 2 step verification</p>
+            
+            <p class="modal-blue-text mt-15" style="color:#fff; font-size:0.85rem;">Add This Gmail ID For Recovery Gmail Option:</p>
+            <div class="copy-box mt-5">
+                <span id="recovery-email-text">fucx0976@gmail.com</span>
+                <button onclick="copyRecoveryEmail()"><i class="fa-solid fa-copy"></i></button>
+            </div>
+
+            <button class="btn red-btn mt-20" style="background: linear-gradient(90deg, #ff5722, #ff9800);" onclick="submitGmailTask()">Submit Gmail Task</button>
+            <div style="text-align: center; margin-top: 15px;">
+                <span onclick="closeModals()" style="color: #888; cursor: pointer; font-size: 0.9rem;">Cancel</span>
+            </div>
         </div>
     </div>
 
