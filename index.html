@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TaskOra</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <h1 class="logo">Task<span>Ora</span></h1>
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <!-- Auth Container (Login / Signup) -->
+    <div id="auth-container" class="hidden">
+        <!-- Login Form -->
+        <div class="form-box" id="login-box">
+            <h2>Welcome Back</h2>
+            <p class="subtitle">Login to TaskOra</p>
+            <form id="login-form">
+                <div class="input-group">
+                    <input type="email" id="login-email" required placeholder=" ">
+                    <label>Email Address</label>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="login-password" required placeholder=" " maxlength="12">
+                    <label>Password</label>
+                </div>
+                <button type="submit" class="btn neon-btn">Login</button>
+                <p class="switch-form">Don't have an account? <span onclick="toggleForm('signup')">Sign Up</span></p>
+            </form>
+        </div>
+
+        <!-- Sign Up Form -->
+        <div class="form-box hidden" id="signup-box">
+            <h2>Create Account</h2>
+            <p class="subtitle">Join TaskOra today</p>
+            <form id="signup-form">
+                <div class="input-group">
+                    <input type="text" id="signup-name" required placeholder=" ">
+                    <label>Full Name</label>
+                </div>
+                <div class="input-group">
+                    <input type="tel" id="signup-phone" required placeholder=" ">
+                    <label>Phone Number</label>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="signup-email" required placeholder=" ">
+                    <label>Email Address</label>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="signup-password" required placeholder=" " maxlength="12">
+                    <label>Password (Max 12 chars)</label>
+                </div>
+                <button type="submit" class="btn neon-btn">Create Account</button>
+                <p class="switch-form">Already have an account? <span onclick="toggleForm('login')">Login</span></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Interface (Hidden till login) -->
+    <div id="main-app" class="hidden">
+        <!-- Top Header -->
+        <header class="app-header">
+            <h2 class="logo-small">Task<span>Ora</span></h2>
+            <div class="header-balance"><i class="fa-solid fa-wallet"></i> ₹<span id="header-bal-text">0.00</span></div>
+        </header>
+
+        <!-- Pages Container -->
+        <div class="pages-container">
+            
+            <!-- 1. TASKS PAGE -->
+            <div id="page-tasks" class="page active">
+                <div class="page-title">Available Tasks</div>
+                <div class="task-card">
+                    <div class="task-price">1₹ Per Task</div>
+                    <h3 class="task-name">Instagram Id</h3>
+                    <p class="task-caption">Unlimited Account Allowed • 29 Hours For Verification</p>
+                    <button class="btn blue-btn" onclick="openTaskModal()">Submit A Insta Account</button>
+                </div>
+            </div>
+
+            <!-- 2. ALL (TASK TRACKER) PAGE -->
+            <div id="page-all" class="page">
+                <div class="page-title">Task Tracker</div>
+                <div id="task-tracker-list" class="list-container">
+                    <!-- Tasks will load here dynamically -->
+                </div>
+            </div>
+
+            <!-- 3. BALANCE PAGE -->
+            <div id="page-balance" class="page">
+                <div class="balance-card">
+                    <p>Total Available Balance</p>
+                    <h1>₹<span id="main-balance-text">0.00</span></h1>
+                </div>
+            </div>
+            
+            <!-- 4. PAYOUT PAGE -->
+            <div id="page-payout" class="page">
+                <div class="balance-card mini">
+                    <p>Current Balance</p>
+                    <h2>₹<span id="payout-balance-text">0.00</span></h2>
+                </div>
+                <form id="payout-form" class="mt-20">
+                    <div class="input-group">
+                        <input type="number" id="withdraw-amount" required placeholder=" " min="50">
+                        <label>Enter Amount (Min. 50₹)</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="withdraw-upi" required placeholder=" ">
+                        <label>Enter UPI ID</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="withdraw-pass" required placeholder=" " maxlength="12">
+                        <label>Login Password</label>
+                    </div>
+                    <button type="submit" class="btn neon-btn">Request Payout</button>
+                </form>
+                
+                <h3 class="section-title mt-20">Withdrawal History</h3>
+                <div id="withdraw-history-list" class="list-container">
+                    <!-- History loads here -->
+                </div>
+            </div>
+
+            <!-- 5. REFER PAGE -->
+            <div id="page-refer" class="page">
+                <div class="page-title">Refer & Earn</div>
+                
+                <!-- Create/View Own Code -->
+                <div class="refer-box" id="my-refer-section">
+                    <h3>Your Refer Code</h3>
+                    <div id="create-refer-div">
+                        <input type="text" id="new-refer-code" placeholder="Max 8 chars (Alphanumeric)" maxlength="8" class="refer-input">
+                        <button class="btn blue-btn btn-small mt-10" onclick="createReferCode()">Create Code</button>
+                    </div>
+                    <div id="show-refer-div" class="hidden">
+                        <h2 class="neon-text" id="my-active-code">---</h2>
+                        <p class="small-text">Share this code with friends.</p>
+                    </div>
+                </div>
+
+                <!-- Enter Friend's Code -->
+                <div class="refer-box mt-20" id="enter-refer-section">
+                    <h3>Enter Friend's Code</h3>
+                    <input type="text" id="friend-refer-code" placeholder="Enter Refer Code" maxlength="8" class="refer-input">
+                    <button class="btn blue-btn btn-small mt-10" onclick="submitFriendCode()">Apply Code</button>
+                </div>
+                <div class="refer-box mt-20 hidden" id="applied-refer-section">
+                    <p class="status-success">Referral applied successfully!</p>
+                </div>
+
+                <h3 class="section-title mt-20">My Referrals</h3>
+                <div id="referrals-list" class="list-container">
+                    <!-- Referrals load here -->
+                </div>
+            </div>
+
+            <!-- 6. ACCOUNT PAGE -->
+            <div id="page-account" class="page">
+                <div class="profile-card">
+                    <i class="fa-solid fa-user-circle profile-icon"></i>
+                    <div class="input-group mt-20">
+                        <input type="text" id="profile-name" placeholder=" ">
+                        <label>Full Name</label>
+                    </div>
+                    <button class="btn blue-btn btn-small mb-20" onclick="updateProfileName()">Update Name</button>
+                    
+                    <div class="info-row"><span>Email:</span> <span id="profile-email">---</span></div>
+                    <div class="info-row"><span>Phone:</span> <span id="profile-phone">---</span></div>
+                    
+                    <button class="btn neon-btn mt-20" onclick="openPasswordModal()">Change Password</button>
+                    <button class="btn red-btn mt-20" onclick="logoutApp()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Native Bar -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="switchPage('tasks', this)"><i class="fa-solid fa-layer-group"></i><span>Tasks</span></div>
+            <div class="nav-item" onclick="switchPage('all', this)"><i class="fa-solid fa-clipboard-list"></i><span>All</span></div>
+            <div class="nav-item" onclick="switchPage('balance', this)"><i class="fa-solid fa-wallet"></i><span>Balance</span></div>
+            <div class="nav-item" onclick="switchPage('payout', this)"><i class="fa-solid fa-money-bill-transfer"></i><span>Payout</span></div>
+            <div class="nav-item" onclick="switchPage('refer', this)"><i class="fa-solid fa-users"></i><span>Refer</span></div>
+            <div class="nav-item" onclick="switchPage('account', this)"><i class="fa-solid fa-user"></i><span>Account</span></div>
+        </nav>
+    </div>
+
+    <!-- Popup / Modal for Task Submission -->
+    <div id="task-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModals()">&times;</span>
+            <h3 class="mb-20">Submit Task</h3>
+            <div class="input-group">
+                <input type="text" id="task-ig-username" required placeholder=" ">
+                <label>Enter Your Account Username</label>
+            </div>
+            
+            <p class="modal-blue-text mt-10">Important: You must use this password when creating the new account</p>
+            <div class="copy-box">
+                <span id="admin-req-password">pungg#18</span>
+                <button onclick="copyAdminPassword()"><i class="fa-solid fa-copy"></i></button>
+            </div>
+
+            <div class="input-group mt-20">
+                <input type="text" id="task-2fa" required placeholder=" ">
+                <label>Enter Your 2FA KEY</label>
+            </div>
+
+            <p class="guideline-text"><strong>Important Guidelines:</strong> You can use random names when creating the account, but the account date of birth must be 18+ years. If the account age is not 18+, your submission will be rejected.</p>
+            <p class="guideline-text mt-10"><strong>Note:</strong> Only new and fresh created accounts are accepted. Once an account is submitted, it cannot be submitted again.</p>
+            
+            <button class="btn pink-orange-btn mt-20" onclick="submitTask()">Submit Account</button>
+        </div>
+    </div>
+
+    <!-- Popup / Modal for Change Password -->
+    <div id="password-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModals()">&times;</span>
+            <h3 class="mb-20">Change Password</h3>
+            <div class="input-group">
+                <input type="password" id="pass-current" required placeholder=" " maxlength="12">
+                <label>Current Password</label>
+            </div>
+            <div class="input-group mt-20">
+                <input type="password" id="pass-new" required placeholder=" " maxlength="12">
+                <label>New Password (Max 12 chars)</label>
+            </div>
+            <button class="btn neon-btn mt-20" onclick="changePassword()">Set Password</button>
+        </div>
+    </div>
+
+    <!-- Firebase v8 SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+</body>
+</html>
