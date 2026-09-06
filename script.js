@@ -117,26 +117,39 @@ function loadUserData() {
 }
 
 function loadAppSettings() {
-    // Fetch dynamic password from Admin Settings (fallback to pungg#18)
     db.ref('adminSettings/taskPasswords/instagram').on('value', (snap) => {
         let pass = snap.val() || "pungg#18";
         document.getElementById('admin-req-password').innerText = pass;
     });
 }
 
-// --- 5. TASK LOGIC ---
+// --- 5. TASK LOGIC (INSTAGRAM & GMAIL) ---
 function openTaskModal() {
     document.getElementById('task-modal').classList.remove('hidden');
     document.getElementById('task-ig-username').value = '';
     document.getElementById('task-2fa').value = '';
 }
+
+function openGmailModal() {
+    document.getElementById('gmail-modal').classList.remove('hidden');
+    document.getElementById('gmail-user-id').value = '';
+    document.getElementById('gmail-user-pass').value = '';
+}
+
 function closeModals() {
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
 }
+
 function copyAdminPassword() {
     let text = document.getElementById('admin-req-password').innerText;
     navigator.clipboard.writeText(text);
     alert("Password Copied!");
+}
+
+function copyRecoveryEmail() {
+    let text = document.getElementById('recovery-email-text').innerText;
+    navigator.clipboard.writeText(text);
+    alert("Recovery Email Copied!");
 }
 
 function submitTask() {
@@ -150,10 +163,30 @@ function submitTask() {
         type: 'Instagram',
         username: username,
         key2fa: key2fa,
-        status: 'Pending', // status: Processing(Blue), Approved(Green), Rejected(Red)
+        status: 'Pending',
         timestamp: Date.now()
     }).then(() => {
-        alert("Task Submitted Successfully!");
+        alert("Instagram Task Submitted Successfully!");
+        closeModals();
+        switchPage('all', document.querySelectorAll('.nav-item')[1]);
+    });
+}
+
+function submitGmailTask() {
+    let gmailId = document.getElementById('gmail-user-id').value.trim();
+    let gmailPass = document.getElementById('gmail-user-pass').value.trim();
+
+    if(!gmailId || !gmailPass) return alert("Please fill all details.");
+
+    let taskId = db.ref().child('tasks/' + currentUserUid).push().key;
+    db.ref('tasks/' + currentUserUid + '/' + taskId).set({
+        type: 'Gmail Creation',
+        username: gmailId,
+        password: gmailPass,
+        status: 'Pending',
+        timestamp: Date.now()
+    }).then(() => {
+        alert("Gmail Task Submitted Successfully!");
         closeModals();
         switchPage('all', document.querySelectorAll('.nav-item')[1]);
     });
@@ -169,16 +202,55 @@ function loadTasksList() {
             list.innerHTML += `
                 <div class="list-item status-${task.status}">
                     <div>
-                        <div class="item-title">${task.type} ID: ${task.username}</div>
+                        <div class="item-title">${task.type} - ${task.username}</div>
                         <div class="item-sub">${date}</div>
                     </div>
                     <div class="status-text-${task.status}"><b>${task.status}</b></div>
                 </div>`;
         });
+        if(list.innerHTML === '') list.innerHTML = '<p class="small-text text-center" style="color:#888;">No tasks submitted yet.</p>';
     });
 }
 
-// --- 6. PAYOUT LOGIC ---
+// --- 6. PROMO CODE REDEEM LOGIC ---
+function redeemPromoCode() {
+    let code = document.getElementById('promo-code-input').value.trim();
+    if(!code) return alert("Please enter a promo code.");
+
+    db.ref('promoCodes/' + code).once('value', snap => {
+        if(!snap.exists()) return alert("Invalid Promo Code!");
+        let promo = snap.val();
+
+        if(Date.now() > promo.expireTime) {
+            return alert("This promo code has expired!");
+        }
+
+        db.ref(`promoUsage/${code}/${currentUserUid}`).once('value', usageSnap => {
+            if(usageSnap.exists()) {
+                return alert("You have already used this promo code!");
+            }
+
+            db.ref(`promoUsage/${code}`).once('value', allUsesSnap => {
+                let currentUses = allUsesSnap.numChildren();
+                if(currentUses >= promo.maxUsers) {
+                    return alert("Promo code limit reached!");
+                }
+
+                db.ref(`users/${currentUserUid}/balance`).transaction(bal => {
+                    return (bal || 0) + promo.amount;
+                }, (error, committed) => {
+                    if(committed) {
+                        db.ref(`promoUsage/${code}/${currentUserUid}`).set(true);
+                        alert(`Promo code applied successfully! ₹${promo.amount} added to your balance.`);
+                        document.getElementById('promo-code-input').value = '';
+                    }
+                });
+            });
+        });
+    });
+}
+
+// --- 7. PAYOUT LOGIC ---
 document.getElementById('payout-form').addEventListener('submit', (e) => {
     e.preventDefault();
     let amount = parseFloat(document.getElementById('withdraw-amount').value);
@@ -188,9 +260,7 @@ document.getElementById('payout-form').addEventListener('submit', (e) => {
     if(amount < 30) return alert("Minimum withdraw amount is 30₹");
     if(amount > userData.balance) return alert("Insufficient Balance!");
 
-    // Verify Password before withdraw
     auth.signInWithEmailAndPassword(userData.email, pass).then(() => {
-        // Deduct balance and create request
         db.ref('users/' + currentUserUid + '/balance').set(userData.balance - amount);
         
         let wId = db.ref().child('withdrawals/' + currentUserUid).push().key;
@@ -219,10 +289,11 @@ function loadWithdrawHistory() {
                     <div class="status-text-${w.status}"><b>${w.status}</b></div>
                 </div>`;
         });
+        if(list.innerHTML === '') list.innerHTML = '<p class="small-text text-center" style="color:#888;">No withdrawal history.</p>';
     });
 }
 
-// --- 7. REFER LOGIC ---
+// --- 8. REFER LOGIC ---
 function createReferCode() {
     let code = document.getElementById('new-refer-code').value.trim();
     let regex = /^[a-zA-Z0-9]{1,8}$/;
@@ -230,7 +301,6 @@ function createReferCode() {
     
     db.ref('referCodes/' + code).once('value', snap => {
         if(snap.exists()) return alert("This code already exists, choose another.");
-        // Save Code
         db.ref('referCodes/' + code).set(currentUserUid);
         db.ref('users/' + currentUserUid + '/referCode').set(code);
         alert("Refer Code Created!");
@@ -245,9 +315,7 @@ function submitFriendCode() {
         if(!snap.exists()) return alert("Invalid Refer Code!");
         let referrerUid = snap.val();
         
-        // Link user to referrer
         db.ref('users/' + currentUserUid + '/referredBy').set(code);
-        // Add to referrer's list
         db.ref('users/' + referrerUid + '/myReferrals/' + currentUserUid).set({
             name: userData.fullName,
             commission: 0
@@ -270,11 +338,11 @@ function loadReferrals() {
                     <div style="color:#00e676"><b>₹${refUser.commission.toFixed(2)}</b> Earned</div>
                 </div>`;
         });
-        if(list.innerHTML === '') list.innerHTML = '<p class="small-text text-center">No referrals yet.</p>';
+        if(list.innerHTML === '') list.innerHTML = '<p class="small-text text-center" style="color:#888;">No referrals yet.</p>';
     });
 }
 
-// --- 8. ACCOUNT SETTINGS ---
+// --- 9. ACCOUNT SETTINGS ---
 function updateProfileName() {
     let newName = document.getElementById('profile-name').value.trim();
     if(newName) {
