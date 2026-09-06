@@ -7,10 +7,10 @@ body { background-color: #050508; color: #ffffff; overflow-x: hidden; }
 
 /* Utilities */
 .hidden { display: none !important; }
-.mt-10 { margin-top: 10px; } .mt-20 { margin-top: 20px; } .mb-20 { margin-bottom: 20px; }
+.mt-5 { margin-top: 5px; } .mt-10 { margin-top: 10px; } .mt-15 { margin-top: 15px; } .mt-20 { margin-top: 20px; } .mb-20 { margin-bottom: 20px; }
 .neon-text { color: #00e5ff; text-shadow: 0 0 10px rgba(0,229,255,0.5); }
 
-/* Splash & Auth (Merged styles from before) */
+/* Splash & Auth */
 #splash-screen { position: fixed; top:0; left:0; width:100%; height:100%; background:#050508; display:flex; justify-content:center; align-items:center; z-index:9999; transition:0.5s; }
 .logo { font-size: 3rem; font-weight: 700; letter-spacing: 2px; }
 .logo span { color: #00e5ff; text-shadow: 0 0 15px rgba(0,229,255,0.6); }
@@ -33,6 +33,7 @@ body { background-color: #050508; color: #ffffff; overflow-x: hidden; }
 .neon-btn { background: linear-gradient(90deg, #0088ff, #00e5ff); box-shadow: 0 5px 15px rgba(0,229,255,0.3); }
 .blue-btn { background: #0066ff; box-shadow: 0 5px 15px rgba(0,102,255,0.3); }
 .red-btn { background: #ff1744; box-shadow: 0 5px 15px rgba(255,23,68,0.3); }
+.telegram-btn { background: #0088cc; box-shadow: 0 5px 15px rgba(0,136,204,0.3); }
 .pink-orange-btn { background: linear-gradient(90deg, #ff0844, #ffb199); box-shadow: 0 5px 15px rgba(255,8,68,0.3); }
 .btn:active { transform: scale(0.98); }
 .btn-small { padding: 10px; font-size: 0.9rem; }
@@ -74,11 +75,12 @@ body { background-color: #050508; color: #ffffff; overflow-x: hidden; }
 .item-title { font-weight: 600; font-size:1rem; }
 .item-sub { font-size: 0.8rem; color: #888; }
 
-/* Balance & Payout */
+/* Balance, Promo & Payout */
 .balance-card { background: linear-gradient(135deg, #0d0d14, #1a1a2e); padding: 30px 20px; border-radius: 15px; text-align: center; border: 1px solid rgba(0,229,255,0.2); }
 .balance-card h1 { font-size: 3rem; color: #00e5ff; margin-top: 10px; }
 .balance-card.mini { padding: 20px; }
 .balance-card.mini h2 { font-size: 2rem; color: #00e5ff; }
+.promo-card { background: #0d0d14; padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
 
 /* Refer Page */
 .refer-box { background: #0d0d14; padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); }
@@ -89,6 +91,7 @@ body { background-color: #050508; color: #ffffff; overflow-x: hidden; }
 .profile-card { background: #0d0d14; padding: 30px 20px; border-radius: 15px; text-align: center; }
 .profile-icon { font-size: 4rem; color: #00e5ff; margin-bottom: 10px; }
 .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
+.support-box { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: left; }
 
 /* Modals */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
