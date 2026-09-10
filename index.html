@@ -10,6 +10,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Maintenance Mode Overlay -->
+    <div id="maintenance-overlay" class="modal-overlay hidden" style="z-index: 10000; background: #050508;">
+        <div class="modal-content" style="border-color: #ff1744; text-align: center;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; color: #ff1744; margin-bottom: 15px;"></i>
+            <h2 class="mb-10" style="color: #ff1744;">Under Maintenance</h2>
+            <p id="maintenance-notice-text" style="color: #aaa; font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;"></p>
+        </div>
+    </div>
+
+    <!-- Direct Notice Modal -->
+    <div id="notice-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="text-align: center;">
+            <h3 class="mb-10 neon-text">Notice from Admin</h3>
+            <p id="notice-modal-text" style="color: #fff; font-size: 0.95rem; line-height: 1.5; margin: 15px 0;"></p>
+            <button class="btn neon-btn btn-small" onclick="closeNoticeModal()">Got It</button>
+        </div>
+    </div>
+
     <!-- Splash Screen -->
     <div id="splash-screen">
         <div class="splash-content">
@@ -82,9 +103,9 @@
                 
                 <!-- Instagram Task Card -->
                 <div class="task-card">
-                    <div class="task-price">1₹ Per Task</div>
+                    <div class="task-price">₹1 Per Task</div>
                     <h3 class="task-name">Instagram Id</h3>
-                    <p class="task-caption">Unlimited Account Allowed • 29 Hours For Verification</p>
+                    <p class="task-caption">Unlimited Account Allowed • 12 Hours For Verification</p>
                     <button class="btn blue-btn" onclick="openTaskModal()">Submit A Insta Account</button>
                 </div>
 
@@ -92,7 +113,7 @@
                 <div class="task-card mt-20">
                     <div class="task-price">₹6 Per Task</div>
                     <h3 class="task-name">Gmail Creation Work</h3>
-                    <p class="task-caption">Unlimited Account Allowed • 48 Hours Verification</p>
+                    <p class="task-caption">Unlimited Account Allowed • 24 Hours Verification</p>
                     <button class="btn blue-btn" onclick="openGmailModal()">Start & Submit Gmail</button>
                 </div>
             </div>
@@ -119,7 +140,7 @@
                         <input type="text" id="promo-code-input" placeholder=" ">
                         <label>Enter Promo Code</label>
                     </div>
-                    <button class="btn blue-btn btn-small" onclick="redeemPromoCode()">Redeem Code</button>
+                    <button id="redeem-btn" class="btn blue-btn btn-small" onclick="redeemPromoCode()">Redeem Code</button>
                 </div>
             </div>
             
@@ -131,12 +152,16 @@
                 </div>
                 <form id="payout-form" class="mt-20">
                     <div class="input-group">
-                        <input type="number" id="withdraw-amount" required placeholder=" " min="30">
-                        <label>Enter Amount (Min. 30₹)</label>
+                        <input type="number" id="withdraw-amount" required placeholder=" " min="10">
+                        <label>Enter Amount (Min. 10₹)</label>
                     </div>
                     <div class="input-group">
                         <input type="text" id="withdraw-upi" required placeholder=" ">
                         <label>Enter UPI ID</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="withdraw-holder" required placeholder=" ">
+                        <label>Account Holder's Name</label>
                     </div>
                     <div class="input-group">
                         <input type="password" id="withdraw-pass" required placeholder=" " maxlength="12">
@@ -184,7 +209,15 @@
                 </div>
             </div>
 
-            <!-- 6. ACCOUNT PAGE -->
+            <!-- 6. 2FA PAGE (Embedded Webview 2fa.cn) -->
+            <div id="page-2fa" class="page" style="height: calc(100vh - 100px); display: flex; flex-direction: column;">
+                <div class="page-title" style="margin-bottom: 10px;">2FA Generator</div>
+                <div class="webview-box">
+                    <iframe src="https://2fa.cn" title="2FA Webview"></iframe>
+                </div>
+            </div>
+
+            <!-- 7. ACCOUNT PAGE -->
             <div id="page-account" class="page">
                 <div class="profile-card">
                     <i class="fa-solid fa-user-circle profile-icon"></i>
@@ -213,44 +246,50 @@
             </div>
         </div>
 
-        <!-- Bottom Native Bar -->
+        <!-- Bottom Native Bar Overlay -->
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="switchPage('tasks', this)"><i class="fa-solid fa-layer-group"></i><span>Tasks</span></div>
-            <div class="nav-item" onclick="switchPage('all', this)"><i class="fa-solid fa-clipboard-list"></i><span>All</span></div>
+            <div class="nav-item" onclick="switchPage('all', this)"><i class="fa-solid fa-clipboard-list"></i><span>History</span></div>
             <div class="nav-item" onclick="switchPage('balance', this)"><i class="fa-solid fa-wallet"></i><span>Balance</span></div>
             <div class="nav-item" onclick="switchPage('payout', this)"><i class="fa-solid fa-money-bill-transfer"></i><span>Payout</span></div>
             <div class="nav-item" onclick="switchPage('refer', this)"><i class="fa-solid fa-users"></i><span>Refer</span></div>
+            <div class="nav-item" onclick="switchPage('2fa', this)"><i class="fa-solid fa-shield-halved"></i><span>2FA</span></div>
             <div class="nav-item" onclick="switchPage('account', this)"><i class="fa-solid fa-user"></i><span>Account</span></div>
         </nav>
     </div>
 
     <!-- Popup / Modal for Task Submission -->
     <div id="task-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeModals()">&times;</span>
-            <h3 class="mb-20">Submit Task</h3>
-            <div class="input-group">
-                <input type="text" id="task-ig-username" required placeholder=" ">
-                <label>Enter Your Account Username</label>
-            </div>
-            
-            <p class="modal-blue-text mt-10">Important: You must use this password when creating the new account</p>
-            <div class="copy-box">
-                <span id="admin-req-password">pungg#18</span>
-                <button onclick="copyAdminPassword()"><i class="fa-solid fa-copy"></i></button>
-            </div>
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModals()">&times;</span>
+        <h3 class="mb-15">Submit Task</h3>
+        
+        <button class="btn video-btn mb-15" onclick="openInstagramTutorial()">
+            <i class="fa-solid fa-play"></i> Tutorial Video
+        </button>
 
-            <div class="input-group mt-20">
-                <input type="text" id="task-2fa" required placeholder=" ">
-                <label>Enter Your 2FA KEY</label>
-            </div>
-
-            <p class="guideline-text"><strong>Important Guidelines:</strong> You can use random names when creating the account, but the account date of birth must be 18+ years. If the account age is not 18+, your submission will be rejected.</p>
-            <p class="guideline-text mt-10"><strong>Note:</strong> Only new and fresh created accounts are accepted. Once an account is submitted, it cannot be submitted again.</p>
-            
-            <button class="btn pink-orange-btn mt-20" onclick="submitTask()">Submit Account</button>
+        <div class="input-group">
+            <input type="text" id="task-ig-username" required placeholder=" ">
+            <label>Enter Your Account Username</label>
         </div>
+        
+        <div class="input-group mt-15">
+            <input type="text" id="task-2fa-key" required placeholder=" ">
+            <label>Enter 2FA Secret Key</label>
+        </div>
+
+        <p class="modal-blue-text mt-10">Important: You must use this password when creating the new account</p>
+        <div class="copy-box">
+            <span id="admin-req-password">pungg#18</span>
+            <button onclick="copyAdminPassword()"><i class="fa-solid fa-copy"></i></button>
+        </div>
+
+        <p class="guideline-text mt-15"><strong>Important Guidelines:</strong> It is mandatory to upload a profile picture and post that exact same photo to your profile feed. If these requirements are not met, your submission will be rejected.</p>
+        
+        <button class="btn pink-orange-btn mt-20" onclick="submitTask()">Submit Account</button>
     </div>
+</div>
+
 
     <!-- Popup / Modal for Gmail Task Submission -->
     <div id="gmail-modal" class="modal-overlay hidden">
@@ -270,7 +309,7 @@
             
             <p class="modal-blue-text mt-15" style="color:#fff; font-size:0.85rem;">Add This Gmail ID For Recovery Gmail Option:</p>
             <div class="copy-box mt-5">
-                <span id="recovery-email-text">fucx0976@gmail.com</span>
+                <span id="recovery-email-text">Loading...</span>
                 <button onclick="copyRecoveryEmail()"><i class="fa-solid fa-copy"></i></button>
             </div>
 
@@ -295,6 +334,19 @@
                 <label>New Password (Max 12 chars)</label>
             </div>
             <button class="btn neon-btn mt-20" onclick="changePassword()">Set Password</button>
+        </div>
+    </div>
+
+    <!-- Popup / Modal for Withdrawal Details -->
+    <div id="withdraw-detail-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModals()">&times;</span>
+            <h3 class="mb-20">Withdrawal Details</h3>
+            <div class="info-row"><span>Status:</span> <span id="modal-w-status">---</span></div>
+            <div class="info-row"><span>Amount Requested:</span> <span id="modal-w-amount">---</span></div>
+            <div class="info-row"><span>Account Holder:</span> <span id="modal-w-holder">---</span></div>
+            <div class="info-row"><span>UPI ID:</span> <span id="modal-w-upi">---</span></div>
+            <div id="modal-success-notice" class="mt-20 hidden" style="background: rgba(0,230,118,0.1); border: 1px solid #00e676; padding: 12px; border-radius: 8px; color: #00e676; font-size: 0.9rem; line-height: 1.4;"></div>
         </div>
     </div>
 
