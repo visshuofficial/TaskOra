@@ -1,3 +1,4 @@
+
 // --- 1. FIREBASE SETUP ---
 const firebaseConfig = {
     apiKey: "AIzaSyDelPljQwj6fikfF7Xo54LD_haOd9Kzdk0",
@@ -148,7 +149,35 @@ function loadUserData() {
         }
 
         if(userData.directNotice) {
-            document.getElementById('notice-modal-text').innerText = userData.directNotice;
+            let noticeText = "";
+            let noticeLink = userData.noticeLink || "";
+
+            if (typeof userData.directNotice === 'object' && userData.directNotice !== null) {
+                noticeText = userData.directNotice.text || userData.directNotice.message || "";
+                noticeLink = userData.directNotice.link || userData.directNotice.url || noticeLink;
+            } else {
+                noticeText = userData.directNotice;
+            }
+
+            if (!noticeLink) {
+                let urlRegex = /(https?:\/\/[^\s]+)/g;
+                let match = noticeText.match(urlRegex);
+                if (match) {
+                    noticeLink = match[0];
+                }
+            }
+
+            document.getElementById('notice-modal-text').innerText = noticeText;
+            
+            let linkWrapper = document.getElementById('notice-link-wrapper');
+            let linkBtn = document.getElementById('notice-link-btn');
+            if (noticeLink && linkWrapper && linkBtn) {
+                linkBtn.href = noticeLink;
+                linkWrapper.classList.remove('hidden');
+            } else if (linkWrapper) {
+                linkWrapper.classList.add('hidden');
+            }
+
             document.getElementById('notice-modal').classList.remove('hidden');
         }
         
@@ -169,18 +198,13 @@ function loadUserData() {
             document.getElementById('enter-refer-section').classList.add('hidden');
             document.getElementById('applied-refer-section').classList.remove('hidden');
         }
-
-        db.ref('tasks/' + currentUserUid).once('value', taskSnap => {
-            taskSnap.forEach(child => {
-                checkAndProcessReferralCommission(child.key, child.val());
-            });
-        });
     });
 }
 
 function closeNoticeModal() {
     document.getElementById('notice-modal').classList.add('hidden');
     db.ref('users/' + currentUserUid + '/directNotice').remove();
+    db.ref('users/' + currentUserUid + '/noticeLink').remove();
 }
 
 let instagramTutorialUrl = "";
@@ -256,7 +280,6 @@ function submitTask() {
         type: 'Instagram',
         username: username,
         key2fa: key2fa,
-        amount: 1,
         status: 'Pending',
         timestamp: Date.now()
     }).then(() => {
@@ -277,7 +300,6 @@ function submitGmailTask() {
         type: 'Gmail Creation',
         username: gmailId,
         password: gmailPass,
-        amount: 6,
         status: 'Pending',
         timestamp: Date.now()
     }).then(() => {
@@ -287,49 +309,12 @@ function submitGmailTask() {
     });
 }
 
-function checkAndProcessReferralCommission(taskId, task) {
-    let isApproved = task.status === 'Approved' || task.status === 'Success' || task.status === 'Completed';
-    if (isApproved && !task.commissionProcessed) {
-        db.ref('tasks/' + currentUserUid + '/' + taskId + '/commissionProcessed').set(true);
-
-        let taskAmount = task.amount || (task.type === 'Gmail Creation' ? 6 : 1);
-        let comm = taskAmount * 0.15;
-
-        let processCommission = (referrerUid) => {
-            if (!referrerUid) return;
-            
-            db.ref('users/' + referrerUid + '/balance').transaction((bal) => {
-                return (bal || 0) + comm;
-            });
-
-            db.ref('users/' + referrerUid + '/myReferrals/' + currentUserUid + '/commission').transaction((c) => {
-                return (c || 0) + comm;
-            });
-        };
-
-        if (userData && userData.referredByUid) {
-            processCommission(userData.referredByUid);
-        } else if (userData && userData.referredBy) {
-            db.ref('referCodes/' + userData.referredBy).once('value', refSnap => {
-                if (refSnap.exists()) {
-                    let refUid = refSnap.val();
-                    db.ref('users/' + currentUserUid + '/referredByUid').set(refUid);
-                    processCommission(refUid);
-                }
-            });
-        }
-    }
-}
-
 function loadTasksList() {
     db.ref('tasks/' + currentUserUid).on('value', snap => {
         let list = document.getElementById('task-tracker-list');
         list.innerHTML = '';
         snap.forEach(child => {
             let task = child.val();
-            let taskId = child.key;
-            checkAndProcessReferralCommission(taskId, task);
-
             let date = new Date(task.timestamp).toLocaleString();
             list.innerHTML += `
                 <div class="list-item status-${task.status}">
@@ -458,9 +443,8 @@ function openWithdrawDetail(w) {
     let isSuccessful = w.status === 'Approved' || w.status === 'Success' || w.status === 'Completed';
     
     if(isSuccessful) {
-        let netAmount = w.amount - 2;
         noticeDiv.classList.remove('hidden');
-        noticeDiv.innerText = `Your withdrawal has been successfully credited to your account ₹${w.amount}.`;
+        noticeDiv.innerText = `Your Withdrawal ₹${w.amount} is successfully sent to your UPI ID.`;
     } else {
         noticeDiv.classList.add('hidden');
         noticeDiv.innerText = '';
@@ -490,7 +474,6 @@ function submitFriendCode() {
         let referrerUid = snap.val();
         
         db.ref('users/' + currentUserUid + '/referredBy').set(code);
-        db.ref('users/' + currentUserUid + '/referredByUid').set(referrerUid);
         db.ref('users/' + referrerUid + '/myReferrals/' + currentUserUid).set({
             name: userData.fullName,
             commission: 0

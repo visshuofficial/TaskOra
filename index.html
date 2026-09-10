@@ -26,8 +26,11 @@
     <div id="notice-modal" class="modal-overlay hidden">
         <div class="modal-content" style="text-align: center;">
             <h3 class="mb-10 neon-text">Notice from Admin</h3>
-            <p id="notice-modal-text" style="color: #fff; font-size: 0.95rem; line-height: 1.5; margin: 15px 0;"></p>
-            <button class="btn neon-btn btn-small" onclick="closeNoticeModal()">Got It</button>
+            <p id="notice-modal-text" style="color: #fff; font-size: 0.95rem; line-height: 1.5; margin: 15px 0; word-break: break-all;"></p>
+            <div id="notice-link-wrapper" class="hidden mt-15">
+                <a id="notice-link-btn" href="#" target="_blank" class="btn blue-btn btn-small" style="display: inline-block; text-decoration: none;">Open Link</a>
+            </div>
+            <button class="btn neon-btn btn-small mt-15" onclick="closeNoticeModal()">Got It</button>
         </div>
     </div>
 
@@ -249,7 +252,7 @@
         <!-- Bottom Native Bar Overlay -->
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="switchPage('tasks', this)"><i class="fa-solid fa-layer-group"></i><span>Tasks</span></div>
-            <div class="nav-item" onclick="switchPage('all', this)"><i class="fa-solid fa-clipboard-list"></i><span>History</span></div>
+            <div class="nav-item" onclick="switchPage('all', this)"><i class="fa-solid fa-clipboard-list"></i><span>All</span></div>
             <div class="nav-item" onclick="switchPage('balance', this)"><i class="fa-solid fa-wallet"></i><span>Balance</span></div>
             <div class="nav-item" onclick="switchPage('payout', this)"><i class="fa-solid fa-money-bill-transfer"></i><span>Payout</span></div>
             <div class="nav-item" onclick="switchPage('refer', this)"><i class="fa-solid fa-users"></i><span>Refer</span></div>
