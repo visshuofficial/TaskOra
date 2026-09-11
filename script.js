@@ -1,4 +1,3 @@
-
 // --- 1. FIREBASE SETUP ---
 const firebaseConfig = {
     apiKey: "AIzaSyDelPljQwj6fikfF7Xo54LD_haOd9Kzdk0",
@@ -98,6 +97,7 @@ document.getElementById('signup-form').addEventListener('submit', (e) => {
     }).catch(err => showToast(err.message, "error"));
 });
 
+// --- LOGIN ERROR HANDLING ---
 document.getElementById('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
@@ -106,10 +106,38 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
         showToast("Login successful!", "success");
     }).catch(err => {
         let msg = err.message;
-        if(err.code === 'auth/user-disabled') msg = "Your account disabled by admin";
+        if(err.code === 'auth/user-disabled') {
+            msg = "Your account disabled by admin";
+        } else if(err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            msg = "Wrong Password";
+        } else if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+            msg = "This email is not authorized";
+        } else {
+            msg = "This email is not authorized or wrong password";
+        }
         showToast(msg, "error");
     });
 });
+
+// --- FORGOT PASSWORD LOGIC ---
+function openForgotPasswordModal() {
+    document.getElementById('forgot-password-modal').classList.remove('hidden');
+    document.getElementById('forgot-email').value = '';
+}
+
+function sendPasswordReset() {
+    let email = document.getElementById('forgot-email').value.trim();
+    if(!email) return showToast("Please enter your email address.", "error");
+
+    auth.sendPasswordResetEmail(email).then(() => {
+        showToast("Password reset link sent to your email!", "success");
+        closeModals();
+    }).catch(err => {
+        let msg = err.message;
+        if(err.code === 'auth/user-not-found') msg = "This email is not authorized";
+        showToast(msg, "error");
+    });
+}
 
 function logoutApp() {
     auth.signOut();
@@ -149,35 +177,7 @@ function loadUserData() {
         }
 
         if(userData.directNotice) {
-            let noticeText = "";
-            let noticeLink = userData.noticeLink || "";
-
-            if (typeof userData.directNotice === 'object' && userData.directNotice !== null) {
-                noticeText = userData.directNotice.text || userData.directNotice.message || "";
-                noticeLink = userData.directNotice.link || userData.directNotice.url || noticeLink;
-            } else {
-                noticeText = userData.directNotice;
-            }
-
-            if (!noticeLink) {
-                let urlRegex = /(https?:\/\/[^\s]+)/g;
-                let match = noticeText.match(urlRegex);
-                if (match) {
-                    noticeLink = match[0];
-                }
-            }
-
-            document.getElementById('notice-modal-text').innerText = noticeText;
-            
-            let linkWrapper = document.getElementById('notice-link-wrapper');
-            let linkBtn = document.getElementById('notice-link-btn');
-            if (noticeLink && linkWrapper && linkBtn) {
-                linkBtn.href = noticeLink;
-                linkWrapper.classList.remove('hidden');
-            } else if (linkWrapper) {
-                linkWrapper.classList.add('hidden');
-            }
-
+            document.getElementById('notice-modal-text').innerText = userData.directNotice;
             document.getElementById('notice-modal').classList.remove('hidden');
         }
         
@@ -198,13 +198,18 @@ function loadUserData() {
             document.getElementById('enter-refer-section').classList.add('hidden');
             document.getElementById('applied-refer-section').classList.remove('hidden');
         }
+
+        db.ref('tasks/' + currentUserUid).once('value', taskSnap => {
+            taskSnap.forEach(child => {
+                checkAndProcessReferralCommission(child.key, child.val());
+            });
+        });
     });
 }
 
 function closeNoticeModal() {
     document.getElementById('notice-modal').classList.add('hidden');
     db.ref('users/' + currentUserUid + '/directNotice').remove();
-    db.ref('users/' + currentUserUid + '/noticeLink').remove();
 }
 
 let instagramTutorialUrl = "";
@@ -280,6 +285,7 @@ function submitTask() {
         type: 'Instagram',
         username: username,
         key2fa: key2fa,
+        amount: 1,
         status: 'Pending',
         timestamp: Date.now()
     }).then(() => {
@@ -300,6 +306,7 @@ function submitGmailTask() {
         type: 'Gmail Creation',
         username: gmailId,
         password: gmailPass,
+        amount: 6,
         status: 'Pending',
         timestamp: Date.now()
     }).then(() => {
@@ -309,23 +316,67 @@ function submitGmailTask() {
     });
 }
 
+function checkAndProcessReferralCommission(taskId, task) {
+    let isApproved = task.status === 'Approved' || task.status === 'Success' || task.status === 'Completed';
+    if (isApproved && !task.commissionProcessed) {
+        db.ref('tasks/' + currentUserUid + '/' + taskId + '/commissionProcessed').set(true);
+
+        let taskAmount = task.amount || (task.type === 'Gmail Creation' ? 6 : 1);
+        let comm = taskAmount * 0.15;
+
+        let processCommission = (referrerUid) => {
+            if (!referrerUid) return;
+            
+            db.ref('users/' + referrerUid + '/balance').transaction((bal) => {
+                return (bal || 0) + comm;
+            });
+
+            db.ref('users/' + referrerUid + '/myReferrals/' + currentUserUid + '/commission').transaction((c) => {
+                return (c || 0) + comm;
+            });
+        };
+
+        if (userData && userData.referredByUid) {
+            processCommission(userData.referredByUid);
+        } else if (userData && userData.referredBy) {
+            db.ref('referCodes/' + userData.referredBy).once('value', refSnap => {
+                if (refSnap.exists()) {
+                    let refUid = refSnap.val();
+                    db.ref('users/' + currentUserUid + '/referredByUid').set(refUid);
+                    processCommission(refUid);
+                }
+            });
+        }
+    }
+}
+
+// --- 7 DAYS FILTERED TASKS HISTORY ---
 function loadTasksList() {
     db.ref('tasks/' + currentUserUid).on('value', snap => {
         let list = document.getElementById('task-tracker-list');
-        list.innerHTML = '';
+        list.innerHTML = '<p class="small-text" style="color:#888; margin-bottom:5px; text-align:center;">Last 7 Days History</p>';
+        let count = 0;
+        let sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
         snap.forEach(child => {
             let task = child.val();
-            let date = new Date(task.timestamp).toLocaleString();
-            list.innerHTML += `
-                <div class="list-item status-${task.status}">
-                    <div>
-                        <div class="item-title">${task.type} - ${task.username}</div>
-                        <div class="item-sub">${date}</div>
-                    </div>
-                    <div class="status-text-${task.status}"><b>${task.status}</b></div>
-                </div>`;
+            let taskId = child.key;
+            checkAndProcessReferralCommission(taskId, task);
+
+            if (task.timestamp >= sevenDaysAgo) {
+                count++;
+                let date = new Date(task.timestamp).toLocaleString();
+                list.innerHTML += `
+                    <div class="list-item status-${task.status}">
+                        <div>
+                            <div class="item-title">${task.type} - ${task.username}</div>
+                            <div class="item-sub">${date}</div>
+                        </div>
+                        <div class="status-text-${task.status}"><b>${task.status}</b></div>
+                    </div>`;
+            }
         });
-        if(list.innerHTML === '') list.innerHTML = '<p class="small-text text-center" style="color:#888;">No tasks submitted yet.</p>';
+        if(count === 0) list.innerHTML = '<p class="small-text" style="color:#888; margin-bottom:5px; text-align:center;">Last 7 Days History</p><p class="small-text text-center" style="color:#888;">No tasks submitted in the last 7 days.</p>';
     });
 }
 
@@ -382,53 +433,82 @@ function redeemPromoCode() {
     });
 }
 
-// --- 9. PAYOUT LOGIC & DETAILS MODAL ---
+// --- 9. PAYOUT LOGIC & DETAILS MODAL (WITH TRANSACTION LOCK & 7 DAYS HISTORY) ---
 document.getElementById('payout-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    let submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+
     let amount = parseFloat(document.getElementById('withdraw-amount').value);
     let upi = document.getElementById('withdraw-upi').value.trim();
     let holder = document.getElementById('withdraw-holder').value.trim();
     let pass = document.getElementById('withdraw-pass').value;
 
-    if(amount < 10) return showToast("Minimum withdraw amount is 10₹", "error");
-    if(amount > userData.balance) return showToast("Insufficient Balance!", "error");
+    if(amount < 10) {
+        if (submitBtn) submitBtn.disabled = false;
+        return showToast("Minimum withdraw amount is 10₹", "error");
+    }
+    if(amount > userData.balance) {
+        if (submitBtn) submitBtn.disabled = false;
+        return showToast("Insufficient Balance!", "error");
+    }
 
     auth.signInWithEmailAndPassword(userData.email, pass).then(() => {
-        db.ref('users/' + currentUserUid + '/balance').set(userData.balance - amount);
-        
-        let wId = db.ref().child('withdrawals/' + currentUserUid).push().key;
-        db.ref('withdrawals/' + currentUserUid + '/' + wId).set({
-            amount: amount, upi: upi, holderName: holder, status: 'Pending', timestamp: Date.now()
-        }).then(() => {
-            showToast("Withdrawal requested successfully", "success");
-            document.getElementById('payout-form').reset();
+        db.ref('users/' + currentUserUid + '/balance').transaction((currentBal) => {
+            if (currentBal === null || currentBal < amount) {
+                return;
+            }
+            return currentBal - amount;
+        }, (error, committed, snapshot) => {
+            if (submitBtn) submitBtn.disabled = false;
+            if (error || !committed) {
+                return showToast("Insufficient Balance or transaction failed!", "error");
+            }
+
+            let wId = db.ref().child('withdrawals/' + currentUserUid).push().key;
+            db.ref('withdrawals/' + currentUserUid + '/' + wId).set({
+                amount: amount, upi: upi, holderName: holder, status: 'Pending', timestamp: Date.now()
+            }).then(() => {
+                showToast("Withdrawal requested successfully", "success");
+                document.getElementById('payout-form').reset();
+            });
         });
-    }).catch(err => showToast("Incorrect Login Password!", "error"));
+    }).catch(err => {
+        if (submitBtn) submitBtn.disabled = false;
+        showToast("Incorrect Login Password!", "error");
+    });
 });
 
+// --- 7 DAYS FILTERED WITHDRAWAL HISTORY ---
 function loadWithdrawHistory() {
     db.ref('withdrawals/' + currentUserUid).on('value', snap => {
         let list = document.getElementById('withdraw-history-list');
-        list.innerHTML = '';
+        list.innerHTML = '<p class="small-text" style="color:#888; margin-bottom:5px; text-align:center;">All Time History</p>';
+        let count = 0;
+        let sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
         snap.forEach(child => {
             let w = child.val();
-            let date = new Date(w.timestamp).toLocaleString();
-            
-            list.innerHTML += `
-                <div class="list-item status-${w.status}">
-                    <div>
-                        <div class="item-title">₹${w.amount} to UPI</div>
-                        <div class="item-sub">${date}</div>
-                    </div>
-                    <div class="history-action-group">
-                        <div class="status-text-${w.status}"><b>${w.status}</b></div>
-                        <button class="eye-btn" onclick='openWithdrawDetail(${JSON.stringify(w)})'>
-                            <i class="fa-solid fa-eye"></i>
-                        </button>
-                    </div>
-                </div>`;
+            if (w.timestamp >= sevenDaysAgo) {
+                count++;
+                let date = new Date(w.timestamp).toLocaleString();
+                
+                list.innerHTML += `
+                    <div class="list-item status-${w.status}">
+                        <div>
+                            <div class="item-title">₹${w.amount} to UPI</div>
+                            <div class="item-sub">${date}</div>
+                        </div>
+                        <div class="history-action-group">
+                            <div class="status-text-${w.status}"><b>${w.status}</b></div>
+                            <button class="eye-btn" onclick='openWithdrawDetail(${JSON.stringify(w)})'>
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>`;
+            }
         });
-        if(list.innerHTML === '') list.innerHTML = '<p class="small-text text-center" style="color:#888;">No withdrawal history.</p>';
+        if(count === 0) list.innerHTML = '<p class="small-text" style="color:#888; margin-bottom:5px; text-align:center;">All Time History</p><p class="small-text text-center" style="color:#888;">No withdrawal history in the last 7 days.</p>';
     });
 }
 
@@ -444,7 +524,7 @@ function openWithdrawDetail(w) {
     
     if(isSuccessful) {
         noticeDiv.classList.remove('hidden');
-        noticeDiv.innerText = `Your Withdrawal ₹${w.amount} is successfully sent to your UPI ID.`;
+        noticeDiv.innerText = `Your withdrawal has been successfully credited to your account ₹${w.amount}.`;
     } else {
         noticeDiv.classList.add('hidden');
         noticeDiv.innerText = '';
@@ -474,6 +554,7 @@ function submitFriendCode() {
         let referrerUid = snap.val();
         
         db.ref('users/' + currentUserUid + '/referredBy').set(code);
+        db.ref('users/' + currentUserUid + '/referredByUid').set(referrerUid);
         db.ref('users/' + referrerUid + '/myReferrals/' + currentUserUid).set({
             name: userData.fullName,
             commission: 0
@@ -528,6 +609,7 @@ function changePassword() {
         }).catch(err => showToast(err.message, "error"));
     }).catch(err => showToast("Current password incorrect!", "error"));
 }
+
 function openInstagramTutorial() {
     if (instagramTutorialUrl) {
         window.open(instagramTutorialUrl, '_blank');
